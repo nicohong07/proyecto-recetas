@@ -1,42 +1,14 @@
 import math
-from enum import Enum
 
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
+from sqlalchemy import text
+
+from app.database import engine
+from app.schemas import *
 
 app = FastAPI(title="Recipes API")
 
-
-class CraftingStation(str, Enum):
-    crafting_table = "crafting_table"
-    furnace = "furnace"
-    smoker = "smoker"
-    blast_furnace = "blast_furnace"
-
-
-class Ingredient(BaseModel):
-    item: str = Field(min_length=2)
-    quantity: int = Field(ge=1)
-
-
-class RecipeCreate(BaseModel):
-    name: str = Field(min_length=2)
-    result_item: str = Field(min_length=2)
-    result_quantity: int = Field(default=1, ge=1)
-    crafting_station: CraftingStation
-    ingredients: list[Ingredient] = Field(min_length=1)
-
-
-class Recipe(RecipeCreate):
-    id: int
-
-class RecipePage(BaseModel):
-    items: list[Recipe]
-    total: int   
-    page: int
-    page_size: int
-    total_pages: int
-    
+  
 def has_ingredient(ingredient_name: str, recipe: Recipe):
     for ingredient in recipe.ingredients:
         if ingredient_name.lower() in ingredient.item.lower():
@@ -53,6 +25,12 @@ next_recipe_id: int = 1
 def root():
     return {"message": "API de Recetas!"}
 
+# Health
+@app.get("/health")
+def health():
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+    return {"status": "ok", "database": "connected"}
 
 # Getter stations
 @app.get("/stations")
