@@ -1,6 +1,7 @@
+import math
 from enum import Enum
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="Recipes API")
@@ -29,7 +30,13 @@ class RecipeCreate(BaseModel):
 class Recipe(RecipeCreate):
     id: int
 
-
+class RecipePage(BaseModel):
+    items: list[Recipe]
+    total: int   
+    page: int
+    page_size: int
+    total_pages: int
+    
 def has_ingredient(ingredient_name: str, recipe: Recipe):
     for ingredient in recipe.ingredients:
         if ingredient_name.lower() in ingredient.item.lower():
@@ -53,16 +60,32 @@ def list_stations():
     return list(CraftingStation)
 
 
-# List recipes, filtered with name, ingredients or both
+# List recipes, filtered with name, ingredients or both. Page system
 @app.get("/recipes")
-def list_recipes(name: str | None = None, item : str | None = None) -> list[Recipe]:
+def list_recipes(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    name: str | None = None,
+    item: str | None = None,
+) -> RecipePage:
     result = []
     for recipe in recipes:
         matches_name = name is None or name.lower() in recipe.name.lower()
         matches_ingredients = item is None or has_ingredient(item, recipe)
         if matches_ingredients and matches_name:
             result.append(recipe)
-    return result
+    total = len(result)
+    total_pages = math.ceil(total / page_size)
+    start: int = (page - 1) * page_size
+    end: int = page * page_size
+
+    return RecipePage(
+        items = result[start:end],
+        total = total,
+        page = page,
+        page_size = page_size,
+        total_pages = total_pages
+    )
 
 
 # Search for a recipe with the id
