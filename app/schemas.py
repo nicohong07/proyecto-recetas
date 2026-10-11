@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -27,7 +28,7 @@ class Recipe(RecipeCreate):
     id: int
 
 class RecipePage(BaseModel):
-    items: list[Recipe]
+    items: list[Any]
     total: int   
     page: int
     page_size: int
