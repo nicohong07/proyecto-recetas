@@ -1,9 +1,10 @@
 import math
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Form, HTTPException, Query
 from sqlalchemy import text
 
 from app import models
+from app.core import security
 from app.database import crud
 from app.database.database import Base, engine
 from app.schemas import *
@@ -83,3 +84,40 @@ def delete_recipe(recipe_id: int):
         raise HTTPException(status_code=404, detail="Recipe Not Found")
     
     return f"The recipe {row_name} of ID {recipe_id} deleted successfully"  
+
+
+# USER RELATED ENDPOINTS
+
+# Create a user
+
+@app.post("/auth/register", status_code = 201)
+def create_user(data: UserCreate) -> User:
+    hashed_password = security.get_password_hash(data.password)
+
+    user = crud.create_user(data.username, hashed_password)
+
+    if user is None:
+        raise HTTPException(status_code=409, detail="Username already exists")
+    return user
+
+@app.post("/auth/login")
+def login(username: str = Form(), password: str = Form()):
+    user = crud.get_user_by_username(username)
+    if user is None:
+        raise HTTPException(status_code=401, 
+                            detail="Incorrect Username or Password",
+                            headers={"WWW-Authenticate": "Bearer"},)
+    
+    is_correct = security.verify_password(password, user.hashed_password)
+
+    if not is_correct:
+        raise HTTPException(status_code=401, 
+                            detail="Incorrect Username or Password",
+                            headers={"WWW-Authenticate": "Bearer"},)
+    token = security.create_access_token(user.id)
+
+    return Token(
+        access_token=token
+    )
+    
+    

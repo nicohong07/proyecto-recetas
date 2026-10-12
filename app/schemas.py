@@ -33,4 +33,21 @@ class RecipePage(BaseModel):
     page: int
     page_size: int
     total_pages: int
-  
+
+
+class UserCreate(BaseModel):
+    username: str = Field(min_length=5, max_length=16)
+    password: str = Field(min_length = 8, max_length=64)
+
+class User(BaseModel):
+    id: int
+    username:str
+    
+class UserInDB(User):
+    hashed_password:str
+
+
+class Token(BaseModel):
+    access_token:str
+    token_type:str = "bearer"
+

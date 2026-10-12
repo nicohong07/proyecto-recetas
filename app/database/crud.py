@@ -1,7 +1,8 @@
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from app.database.database import engine
-from app.schemas import Recipe, RecipeCreate
+from app.schemas import Recipe, RecipeCreate, User, UserInDB
 
 
 def get_ingredients(conn, recipe_id) -> list[dict]:
@@ -28,8 +29,6 @@ def insert_ingredients(conn, recipe_id, data:RecipeCreate):
             "quantity": ing.quantity
             }
         )
-
-
 
 def get_recipe_by_id(recipe_id: int):
     with engine.connect() as conn:
@@ -168,3 +167,48 @@ def delete_recipe(recipe_id: int):
         row_name = row.scalar_one_or_none()
 
     return row_name
+
+# USER NAME CRUD FUNCTIONS
+
+def create_user(username: str, hashed_password: str):
+    try:
+        with engine.begin() as conn:
+            row = conn.execute(text("""
+                INSERT INTO users(username, hashed_password)
+                VALUES(:username, :hashed_password)
+                RETURNING id, username
+                    """),       
+            {
+            "username": username,
+           "hashed_password": hashed_password
+            }
+    ).mappings().one()
+            row_id = row["id"]
+            row_username = row["username"]
+        
+    except IntegrityError:
+        return None
+    
+    return User(
+                id = row_id,
+                username = row_username
+            )
+def get_user_by_username(username: str) -> UserInDB | None:
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+                SELECT id, username, hashed_password FROM users
+                WHERE username = :username
+                
+            """), {"username": username}
+            ).mappings().one_or_none()
+        
+        if row is None:
+            return None
+        
+    return UserInDB(
+        id=row["id"],
+        username=row["username"],
+        hashed_password=row["hashed_password"]
+        )
+        
+
