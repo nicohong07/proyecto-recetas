@@ -1,14 +1,16 @@
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from pwdlib import PasswordHash
-
 from app.core.config import settings
-from app.schemas import Token
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from pwdlib import PasswordHash
 
 password_hash = PasswordHash.recommended()
 
-def create_access_token(user_id: int) -> Token:
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+def create_access_token(user_id: int) -> str:   
 
     ahora = datetime.now(timezone.utc)
     vence = ahora + timedelta(minutes=settings.access_token_expire_minutes)
@@ -18,6 +20,20 @@ def create_access_token(user_id: int) -> Token:
     token = jwt.encode(payload, settings.secret_key, algorithm = settings.algorithm)
 
     return token
+
+
+def get_current_user(token:str = Depends(oauth2_scheme)) -> int:
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms = [settings.algorithm])
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, 
+                            detail="Token Invalido o Vencido",
+                            headers={"WWW-Authenticate": "Bearer"}
+                            )
+    user_id = int(payload["sub"])    
+
+    return user_id
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return password_hash.verify(plain_password, hashed_password)

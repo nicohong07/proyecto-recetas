@@ -26,6 +26,7 @@ class RecipeCreate(BaseModel):
 
 class Recipe(RecipeCreate):
     id: int
+    user_id:int
 
 class RecipePage(BaseModel):
     items: list[Any]

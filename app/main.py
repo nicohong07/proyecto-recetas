@@ -61,15 +61,23 @@ def get_recipe_by_id(recipe_id: int) -> Recipe:
     return recipe
 
 @app.post("/recipes", status_code=201)
-def create_recipe(data: RecipeCreate) -> Recipe:
-    recipe = crud.create_recipe(data)
+def create_recipe(data: RecipeCreate, user_id: int = Depends(security.get_current_user)) -> Recipe:
+    recipe = crud.create_recipe(data, user_id)
 
     return recipe
 
 # Edit a recipe
 @app.put("/recipes/{recipe_id}")
-def update_recipe( recipe_id: int ,data: RecipeCreate) -> Recipe:
-    recipe = crud.update_recipe(recipe_id, data)
+def update_recipe( recipe_id: int ,data: RecipeCreate, user_id: int = Depends(security.get_current_user)) -> Recipe:
+    recipe = crud.get_recipe_by_id(recipe_id)
+
+    if recipe is None:
+        raise HTTPException(status_code=404, detail="Recipe Not Found")
+
+    if recipe["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="You can't edit other users recipes")
+
+    recipe = crud.update_recipe(recipe_id, data, user_id)
 
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe Not Found")
@@ -77,8 +85,16 @@ def update_recipe( recipe_id: int ,data: RecipeCreate) -> Recipe:
     return recipe
 
 @app.delete("/recipes/{recipe_id}")
-def delete_recipe(recipe_id: int):
-    row_name = crud.delete_recipe(recipe_id)
+def delete_recipe(recipe_id: int, user_id: int = Depends(security.get_current_user)):
+    recipe = crud.get_recipe_by_id(recipe_id)
+
+    if recipe is None:
+        raise HTTPException(status_code=404, detail="Recipe Not Found")
+
+    if recipe["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="You can't delete other users recipes")
+
+    row_name  = crud.delete_recipe(recipe_id)
 
     if row_name is None:
         raise HTTPException(status_code=404, detail="Recipe Not Found")

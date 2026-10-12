@@ -33,7 +33,7 @@ def insert_ingredients(conn, recipe_id, data:RecipeCreate):
 def get_recipe_by_id(recipe_id: int):
     with engine.connect() as conn:
         row = conn.execute(text("""
-                SELECT id, name, result_item, result_quantity, crafting_station
+                SELECT id, name, result_item, user_id, result_quantity, crafting_station
                 FROM recipes
                 WHERE id = :id
          """), {
@@ -88,16 +88,17 @@ def list_recipes(page: int, page_size: int, name: str | None, item: str | None):
             items.append(recipe)
         return items, total
 
-def create_recipe(data: RecipeCreate):
+def create_recipe(data: RecipeCreate, user_id: int):
     with engine.begin() as conn:
         new_id = conn.execute(text("""
-                INSERT INTO recipes(name, result_item, result_quantity, crafting_station)
-                VALUES (:name, :result_item, :result_quantity, :crafting_station)
+                INSERT INTO recipes(name, result_item, user_id, result_quantity, crafting_station)
+                VALUES (:name, :result_item, :user_id, :result_quantity, :crafting_station)
                 RETURNING id
             """), 
                 {
                 "name": data.name,
                 "result_item": data.result_item,
+                "user_id": user_id,
                 "result_quantity": data.result_quantity,
                 "crafting_station": data.crafting_station.value,
                 }
@@ -110,10 +111,11 @@ def create_recipe(data: RecipeCreate):
          result_quantity = data.result_quantity,
          crafting_station = data.crafting_station,
          ingredients = data.ingredients,
-         id = new_id
+         id = new_id,
+         user_id = user_id
     )
 
-def update_recipe(recipe_id: int , data: RecipeCreate):
+def update_recipe(recipe_id: int , data: RecipeCreate, user_id: int):
     with engine.begin() as conn:
         row = conn.execute(text("""
         UPDATE recipes
@@ -152,6 +154,7 @@ def update_recipe(recipe_id: int , data: RecipeCreate):
         result_quantity=data.result_quantity,
         crafting_station=data.crafting_station,
         ingredients=data.ingredients,
+        user_id=user_id
     )
 
 def delete_recipe(recipe_id: int):
