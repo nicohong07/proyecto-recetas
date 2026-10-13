@@ -47,6 +47,23 @@ def get_recipe_by_id(recipe_id: int):
         recipe["ingredients"] = get_ingredients(conn, recipe_id)
     return recipe
 
+def get_my_recipes(user_id:int) -> list[dict]:
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+        SELECT * FROM recipes
+        WHERE user_id = :user_id
+        ORDER BY id
+    """), {"user_id": user_id}
+    ).mappings().all()
+
+        list_my_recipes = []
+        for row in rows:
+            recipe = dict(row)
+            recipe["ingredients"] = get_ingredients(conn, recipe["id"])
+            list_my_recipes.append(recipe)
+    return list_my_recipes
+        
+        
 def list_recipes(page: int, page_size: int, name: str | None, item: str | None):
     offset = (page-1)* page_size
     with engine.connect() as conn:
@@ -85,8 +102,7 @@ def list_recipes(page: int, page_size: int, name: str | None, item: str | None):
         for row in rows:
             recipe = dict(row)
             recipe["ingredients"] = get_ingredients(conn, recipe["id"])
-            items.append(recipe)
-        return items, total
+
 
 def create_recipe(data: RecipeCreate, user_id: int):
     with engine.begin() as conn:

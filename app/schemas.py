@@ -12,13 +12,13 @@ class CraftingStation(str, Enum):
 
 
 class Ingredient(BaseModel):
-    item: str = Field(min_length=2)
+    item: str = Field(min_length=2, max_length=50)
     quantity: int = Field(ge=1)
 
 
 class RecipeCreate(BaseModel):
-    name: str = Field(min_length=2)
-    result_item: str = Field(min_length=2)
+    name: str = Field(min_length=2, max_length=50)
+    result_item: str = Field(min_length=2, max_length=50)
     result_quantity: int = Field(default=1, ge=1)
     crafting_station: CraftingStation
     ingredients: list[Ingredient] = Field(min_length=1)
@@ -29,7 +29,7 @@ class Recipe(RecipeCreate):
     user_id:int
 
 class RecipePage(BaseModel):
-    items: list[Any]
+    items: list[Recipe]
     total: int   
     page: int
     page_size: int
