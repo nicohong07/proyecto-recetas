@@ -23,7 +23,7 @@ No hace falta instalar Python ni PostgreSQL: todo corre dentro de contenedores.
 1. Clonar el repositorio:
 
 ```bash
-   git clone <url-del-repositorio>
+   git clone https://github.com/nicohong07/proyecto-recetas.git
    cd proyecto-recetas
 ```
 
